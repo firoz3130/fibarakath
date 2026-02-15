@@ -7,5 +7,5 @@ export async function getSurahs() {
 export async function getAyahs(surahId: string) {
   const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahId}`);
   const data = await res.json();
-  return data.data.ayahs;
+  return data.data;
 }

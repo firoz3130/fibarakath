@@ -30,7 +30,7 @@ export default function QuranScreen() {
         style={styles.header}
       >
         <Text style={styles.headerTitle}>The Holy Quran</Text>
-        <Text style={styles.headerSubtitle}>📖 114 Surah 🤍</Text>
+        <Text style={styles.headerSubtitle}>📖 114 Surahs 🤍</Text>
       </LinearGradient>
 
       {/* Search Bar */}

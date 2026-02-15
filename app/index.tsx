@@ -73,7 +73,7 @@ export default function HomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.gradientButton}
           >
-            <Text style={styles.ctaButtonText}>✨ Explore the Quran</Text>
+            <Text style={styles.ctaButtonText}>✨ Read the Quran</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Link>
