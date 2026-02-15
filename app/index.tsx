@@ -2,7 +2,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getPrayerTimes } from "../src/api/prayer";
 import { getVerseOfTheDay } from "../src/api/quran";
 
@@ -11,11 +11,11 @@ export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
   const [dailyVerse, setDailyVerse] = useState<any>(null);
 
-    useEffect(() => {
-      getPrayerTimes("Bangalore").then(setTimes);
+  useEffect(() => {
+    getPrayerTimes("Bangalore").then(setTimes);
 
-      getVerseOfTheDay().then(setDailyVerse);
-    }, []);
+    getVerseOfTheDay().then(setDailyVerse);
+  }, []);
 
   const prayerData = times ? [
     { name: "Fajr", time: times.Fajr, arabicName: "الفجر", icon: "🌅" },
@@ -92,13 +92,31 @@ export default function HomeScreen() {
             "{dailyVerse.text}"
           </Text>
 
-          <Text style={{ 
+          <Text style={{
             marginTop: 10,
             fontWeight: "700",
             color: "#1a472a"
           }}>
             — Surah {dailyVerse.surah.englishName} ({dailyVerse.surah.number}:{dailyVerse.numberInSurah})
           </Text>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={async () => {
+              await Share.share({
+                message: `"${dailyVerse.text}"\n\nSurah ${dailyVerse.surah.englishName} (${dailyVerse.surah.number}:${dailyVerse.numberInSurah})`,
+              });
+            }}
+>
+  <LinearGradient
+    colors={['#1a472a', '#2d5a3d']}
+    style={styles.shareButton}
+  >
+    <Text style={styles.shareButtonText}>
+      Share Verse
+    </Text>
+  </LinearGradient>
+</TouchableOpacity>
         </View>
       )}
     </ScrollView>
@@ -250,15 +268,6 @@ const styles = StyleSheet.create({
     color: "#1a472a",
     letterSpacing: 0.5,
   },
-  quoteContainer: {
-    marginHorizontal: 20,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    backgroundColor: "#f1f8e9",
-    borderLeftWidth: 4,
-    borderLeftColor: "#d4af37",
-    borderRadius: 12,
-  },
   quoteText: {
     fontSize: 14,
     color: "#2d5a3d",
@@ -266,4 +275,32 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 22,
   },
+  shareButtonIcon: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+shareButton: {
+  marginTop: 18,
+  paddingVertical: 10,
+  paddingHorizontal: 18,
+  borderRadius: 20,
+  alignSelf: "flex-start",
+},
+
+shareButtonText: {
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: 13,
+  letterSpacing: 0.5,
+},
+quoteContainer: {
+  marginHorizontal: 20,
+  paddingVertical: 24,
+  paddingHorizontal: 20,
+  backgroundColor: "#f1f8e9",
+  borderLeftWidth: 4,
+  borderLeftColor: "#d4af37",
+  borderRadius: 12,
+  marginBottom: 10,   // add this
+},
 });
