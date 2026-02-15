@@ -1,15 +1,21 @@
+/* eslint-disable react/no-unescaped-entities */
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getPrayerTimes } from "../src/api/prayer";
+import { getVerseOfTheDay } from "../src/api/quran";
+
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
+  const [dailyVerse, setDailyVerse] = useState<any>(null);
 
-  useEffect(() => {
-    getPrayerTimes("Bangalore").then(setTimes);
-  }, []);
+    useEffect(() => {
+      getPrayerTimes("Bangalore").then(setTimes);
+
+      getVerseOfTheDay().then(setDailyVerse);
+    }, []);
 
   const prayerData = times ? [
     { name: "Fajr", time: times.Fajr, arabicName: "الفجر", icon: "🌅" },
@@ -79,9 +85,22 @@ export default function HomeScreen() {
       </Link>
 
       {/* Inspirational Quote */}
-      <View style={styles.quoteContainer}>
-        <Text style={styles.quoteText}>Indeed, the month of Ramadan is the month in which the Quran was revealed.</Text>
-      </View>
+      <Text style={styles.sectionTitle}>Verse of the Day</Text>
+      {dailyVerse && (
+        <View style={styles.quoteContainer}>
+          <Text style={styles.quoteText}>
+            "{dailyVerse.text}"
+          </Text>
+
+          <Text style={{ 
+            marginTop: 10,
+            fontWeight: "700",
+            color: "#1a472a"
+          }}>
+            — Surah {dailyVerse.surah.englishName} ({dailyVerse.surah.number}:{dailyVerse.numberInSurah})
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -235,7 +254,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     paddingVertical: 24,
     paddingHorizontal: 20,
-    backgroundColor: "#e8f5e9",
+    backgroundColor: "#f1f8e9",
     borderLeftWidth: 4,
     borderLeftColor: "#d4af37",
     borderRadius: 12,
