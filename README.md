@@ -1,50 +1,245 @@
-# Welcome to your Expo app 👋
+# 🌙 Fibarakath - Your Ramadan Companion App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Fibarakath** is a comprehensive Islamic mobile application designed to be your trusted companion during the blessed month of Ramadan. With seamless access to prayer times, Quran verses, and spiritual guidance, this app helps you make the most of this sacred period.
 
-## Get started
+## ✨ Features
 
-1. Install dependencies
+### 🕌 Prayer Times
 
-   ```bash
-   npm install
-   ```
+- **Real-time Prayer Schedules**: Get accurate Fajr, Dhuhr, Asr, Maghrib, and Isha prayer times
+- **Sehri & Iftar Alerts**: See exact times for pre-dawn meal (Sehri) and breaking the fast (Iftar)
+- **Multi-City Support**: View prayer times for different cities across India
+- **Beautiful UI**: Elegant gradient design with clear time displays
 
-2. Start the app
+### 📖 Quran Reader
 
-   ```bash
-   npx expo start
-   ```
+- **Complete Quran Access**: Browse all 114 Surahs of the Quran
+- **Verse Details**: Read Ayahs with translations and transliterations
+- **Verse of the Day**: Receive a unique daily Islamic verse with caching for offline access
+- **Easy Navigation**: Intuitive interface to jump between chapters
 
-In the output, you'll find options to open the app in a
+### 🎯 Ramadan Companion
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Spiritual Guidance**: Daily verses to inspire and guide your spiritual journey
+- **Prayer Tracking**: Keep track of all five daily prayers
+- **Share Functionality**: Share verses and prayer times with family and friends
+- **Responsive Design**: Works flawlessly on Android, iOS, and Web
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🚀 Getting Started
 
-## Get a fresh project
+### Prerequisites
 
-When you're ready, run:
+- **Node.js** (v16 or higher)
+- **npm** or **yarn** package manager
+- **Expo CLI** (optional, but recommended)
+
+### Installation
+
+1. **Clone the repository**
+
+    ```bash
+    git clone <repository-url>
+    cd fibarakath
+    ```
+
+2. **Install dependencies**
+
+    ```bash
+    npm install
+    ```
+
+3. **Start the development server**
+    ```bash
+    npm start
+    ```
+
+### Running on Different Platforms
+
+**Android Emulator:**
 
 ```bash
-npm run reset-project
+npm run android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**iOS Simulator:** (macOS only)
 
-## Learn more
+```bash
+npm run ios
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+**Web Browser:**
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run web
+```
 
-## Join the community
+**Expo Go App:** (Easiest option)
 
-Join our community of developers creating universal apps.
+- Scan the QR code from the terminal output with the [Expo Go](https://expo.dev/go) app
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📁 Project Structure
+
+```
+fibarakath/
+├── app/                          # Main app screens (file-based routing)
+│   ├── _layout.tsx              # Root layout with navigation
+│   ├── index.tsx                # Home screen with prayer times & verse of day
+│   ├── quran.tsx                # Quran browser screen
+│   └── surah/[id].tsx           # Individual Surah detail view
+├── src/
+│   ├── api/
+│   │   ├── prayer.ts            # Prayer times API integration
+│   │   └── quran.ts             # Quran data API integration
+│   ├── components/
+│   │   ├── AyahCard.tsx         # Verse card component
+│   │   └── TimeCard.tsx         # Prayer time card component
+│   ├── constants/
+│   │   └── cities.ts            # Supported cities data
+│   └── types/
+│       └── quran.ts             # TypeScript type definitions
+├── assets/                       # Images, fonts, and media
+├── package.json                 # Dependencies and scripts
+└── tsconfig.json               # TypeScript configuration
+```
+
+## 🛠 Tech Stack
+
+### Frontend Framework
+
+- **React Native** - Cross-platform mobile development
+- **Expo** - Managed React Native development platform
+- **TypeScript** - Type-safe JavaScript
+
+### Navigation & UI
+
+- **Expo Router** - File-based routing system
+- **React Navigation** - Navigation library with bottom tabs
+- **Expo Linear Gradient** - Beautiful gradient backgrounds
+- **React Native Icons** - Vector icons support
+
+### Storage & State
+
+- **AsyncStorage** - Local device storage for caching
+- **React Hooks** - State management (useState, useEffect)
+
+### APIs
+
+- **Al-Quran Cloud API** - Comprehensive Quran data with translations
+- **Aladhan Prayer Times API** - Accurate Islamic prayer times
+
+## 📱 Features in Detail
+
+### 🕐 Prayer Times Module
+
+- Fetch and display prayer times based on user's city
+- Highlight Sehri and Iftar times prominently
+- Support for multiple Indian cities
+- Real-time updates
+
+### 📚 Quran Module
+
+- Access to all Quran chapters (Surahs)
+- Verse-by-verse (Ayah) reading with English translation
+- Daily verse of the day feature with local caching
+- Fast and reliable data fetching
+
+### 💾 Data Persistence
+
+- Cache verses of the day to ensure offline availability
+- Store prayer times locally for quick access
+- Uses device's AsyncStorage for lightweight persistence
+
+## 🔧 Available Scripts
+
+```bash
+npm start        # Start development server
+npm run android  # Run on Android emulator
+npm run ios      # Run on iOS simulator
+npm run web      # Run in web browser
+npm run lint     # Run ESLint code quality checks
+```
+
+## 🌐 API Integration
+
+### Prayer Times
+
+```
+GET https://api.aladhan.com/v1/timingsByCity?city={city}&country=India
+```
+
+### Quran Data
+
+```
+GET https://api.alquran.cloud/v1/surah              # Get all Surahs
+GET https://api.alquran.cloud/v1/surah/{id}         # Get Surah details
+GET https://api.alquran.cloud/v1/ayah/{number}/en.asad  # Get specific verse
+```
+
+## 📝 Development
+
+### Code Quality
+
+The project uses ESLint to maintain code quality and consistent formatting.
+
+```bash
+npm run lint
+```
+
+### Adding New Features
+
+1. Create components in `src/components/`
+2. Add API calls in `src/api/`
+3. Define types in `src/types/`
+4. Create new routes in the `app/` directory
+
+## 🤝 Contributing
+
+We welcome contributions to make Fibarakath even better! Here's how:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Make your changes and commit (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
+## 📦 Dependencies Highlights
+
+- **expo** (~54.0.33) - Development platform
+- **react-native** (0.81.5) - Mobile framework
+- **expo-router** (~6.0.23) - Navigation
+- **expo-linear-gradient** - Visual effects
+- **react-native-async-storage** - Local storage
+
+## 🔐 Privacy & Security
+
+- All prayer time data is fetched from secure HTTPS APIs
+- Quran data is sourced from reputable Islamic servers
+- Local storage is encrypted at the device level
+- No personal data is collected or shared
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 🌟 Acknowledgments
+
+- **Al-Quran Cloud** for providing comprehensive Quran data
+- **Aladhan** for accurate prayer time calculations
+- **Expo Community** for the excellent development tools
+- **Islamic Community** for spiritual inspiration
+
+## 📞 Support
+
+For support, issues, or feature requests:
+
+- Open an issue on GitHub
+- Check existing documentation
+- Consult the Expo and React Native communities
+
+## 🙏 Duas & Blessings
+
+May this application help you connect with the Quran and maintain your spiritual practice. May Allah accept from all of us. Ameen! 🤲
+
+---
+
+**Developed with ❤️ for the Muslim Community**

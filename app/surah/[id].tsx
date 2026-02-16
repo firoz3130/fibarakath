@@ -93,7 +93,7 @@ export default function SurahDetail() {
         `Surah ${data.number} – ${data.englishName} (${data.name})`
       );
 
-      // 🔥 Restore bookmark AFTER ayahs set
+      //Restore bookmark AFTER ayahs set
       const saved = await AsyncStorage.getItem(
         `last_read_surah_${id}`
       );
