@@ -62,7 +62,7 @@ export default function SurahDetail() {
         }
       });
     } catch (error) {
-      console.log("Audio error:", error);
+      // console.log("Audio error:", error);
     }
   };
   useEffect(() => {

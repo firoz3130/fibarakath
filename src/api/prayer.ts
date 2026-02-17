@@ -29,7 +29,7 @@ export async function getCurrentCity() {
 
     return "Bangalore"; 
   } catch (error) {
-    console.log("Location error:", error);
+    // console.log("Location error:", error);
     return "Bangalore"; 
   }
 }

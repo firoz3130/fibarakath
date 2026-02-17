@@ -3,30 +3,67 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getPrayerTimes } from "../src/api/prayer";
+import { getCurrentCity, getPrayerTimes } from "../src/api/prayer";
 import { getVerseOfTheDay } from "../src/api/quran";
-import { getCurrentCity } from "../src/api/prayer";
+
+import * as Notifications from "expo-notifications";
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
   const [dailyVerse, setDailyVerse] = useState<any>(null);
 
-useEffect(() => {
-  const loadData = async () => {
-    try {
-      const city = await getCurrentCity();
-      const prayerTimes = await getPrayerTimes(city);
-      setTimes(prayerTimes);
+  const scheduleDailyVerseNotification = async () => {
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") return;
 
-      const verse = await getVerseOfTheDay();
-      setDailyVerse(verse);
-    } catch (error) {
-      console.log("Loading error:", error);
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    const now = new Date();
+    const nextTrigger = new Date();
+    nextTrigger.setHours(9);
+    nextTrigger.setMinutes(0);
+    nextTrigger.setSeconds(0);
+
+    // If 9 AM already passed today, schedule for tomorrow
+    if (nextTrigger <= now) {
+      nextTrigger.setDate(nextTrigger.getDate() + 1);
     }
-  };
 
-  loadData();
-}, []);
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "📖 Daily Quran Verse",
+        body: "Read today’s verse and reflect 🌙",
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: nextTrigger,
+      },
+    });
+
+    // console.log("Daily verse scheduled for", nextTrigger);
+  } catch (error) {
+    // console.log("Notification error:", error);
+  }
+};
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const city = await getCurrentCity();
+        const prayerTimes = await getPrayerTimes(city);
+        setTimes(prayerTimes);
+
+        const verse = await getVerseOfTheDay();
+        setDailyVerse(verse);
+        await scheduleDailyVerseNotification();
+      } catch (error) {
+        console.log("Loading error:", error);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const prayerData = times ? [
     { name: "Fajr", time: times.Fajr, arabicName: "الفجر", icon: "🌅" },
@@ -118,16 +155,16 @@ useEffect(() => {
                 message: `"${dailyVerse.text}"\n\nSurah ${dailyVerse.surah.englishName} (${dailyVerse.surah.number}:${dailyVerse.numberInSurah})`,
               });
             }}
->
-  <LinearGradient
-    colors={['#1a472a', '#2d5a3d']}
-    style={styles.shareButton}
-  >
-    <Text style={styles.shareButtonText}>
-      Share Verse
-    </Text>
-  </LinearGradient>
-</TouchableOpacity>
+          >
+            <LinearGradient
+              colors={['#1a472a', '#2d5a3d']}
+              style={styles.shareButton}
+            >
+              <Text style={styles.shareButtonText}>
+                Share Verse
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       )}
     </ScrollView>
@@ -290,28 +327,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-shareButton: {
-  marginTop: 18,
-  paddingVertical: 10,
-  paddingHorizontal: 18,
-  borderRadius: 20,
-  alignSelf: "flex-start",
-},
+  shareButton: {
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
 
-shareButtonText: {
-  color: "#fff",
-  fontWeight: "600",
-  fontSize: 13,
-  letterSpacing: 0.5,
-},
-quoteContainer: {
-  marginHorizontal: 20,
-  paddingVertical: 24,
-  paddingHorizontal: 20,
-  backgroundColor: "#f1f8e9",
-  borderLeftWidth: 4,
-  borderLeftColor: "#d4af37",
-  borderRadius: 12,
-  marginBottom: 10,   // add this
-},
+  shareButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
+  quoteContainer: {
+    marginHorizontal: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: "#f1f8e9",
+    borderLeftWidth: 4,
+    borderLeftColor: "#d4af37",
+    borderRadius: 12,
+    marginBottom: 10,   // add this
+  },
 });
