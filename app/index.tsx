@@ -5,17 +5,28 @@ import { useEffect, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getPrayerTimes } from "../src/api/prayer";
 import { getVerseOfTheDay } from "../src/api/quran";
-
+import { getCurrentCity } from "../src/api/prayer";
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
   const [dailyVerse, setDailyVerse] = useState<any>(null);
 
-  useEffect(() => {
-    getPrayerTimes("Bangalore").then(setTimes);
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      const city = await getCurrentCity();
+      const prayerTimes = await getPrayerTimes(city);
+      setTimes(prayerTimes);
 
-    getVerseOfTheDay().then(setDailyVerse);
-  }, []);
+      const verse = await getVerseOfTheDay();
+      setDailyVerse(verse);
+    } catch (error) {
+      console.log("Loading error:", error);
+    }
+  };
+
+  loadData();
+}, []);
 
   const prayerData = times ? [
     { name: "Fajr", time: times.Fajr, arabicName: "الفجر", icon: "🌅" },
