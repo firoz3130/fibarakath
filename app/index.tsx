@@ -33,7 +33,7 @@ export default function HomeScreen() {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "📖 Daily Quran Verse",
-        body: "Read today’s verse and reflect 🌙",
+        body: dailyVerse ? `"${dailyVerse.text}"` : "Loading...",
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
