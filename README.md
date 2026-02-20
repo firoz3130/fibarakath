@@ -11,7 +11,7 @@
 - **Multi-City Support**: View prayer times for different cities across India
 - **Beautiful UI**: Elegant gradient design with clear time displays
 
-### 📖 Quran Reader
+### 📖 FiBarakath
 
 - **Complete Quran Access**: Browse all 114 Surahs of the Quran
 - **Verse Details**: Read Ayahs with translations and transliterations
