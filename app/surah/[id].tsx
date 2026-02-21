@@ -40,7 +40,7 @@ export default function SurahDetail() {
             setPlayingAyah(null);
             return;
           }
-          // Otherwise stop and play new one
+          // stop and play new one
           await soundRef.current.unloadAsync();
           soundRef.current = null;
         }
@@ -62,7 +62,6 @@ export default function SurahDetail() {
         }
       });
     } catch (error) {
-      // console.log("Audio error:", error);
     }
   };
   useEffect(() => {
