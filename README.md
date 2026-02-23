@@ -149,7 +149,39 @@ fibarakath/
 - Store prayer times locally for quick access
 - Uses device's AsyncStorage for lightweight persistence
 
-## 🔧 Available Scripts
+## � Upcoming Features
+
+### 🎵 Audio Quran Playback
+
+- **Listen to Quran**: Professional audio recitation with beautiful tilawah
+- **Background Playback**: Continue listening even when your phone is locked
+- **Surah-by-Surah Playback**: Listen to complete Surahs without interruption
+- **Smart Controls**: Play, pause, and navigate through verses seamlessly
+- **Quality Audio**: High-quality recitations from renowned Qaris
+
+### 📿 Ready-Made Duas
+
+- **Categorized Duas**: Pre-written dua collections for different purposes:
+    - Morning & Evening Adhkar
+    - Health & Recovery Duas
+    - Success & Guidance Duas
+    - Family & Relationships Duas
+    - Work & Rizq Duas
+    - Forgiveness & Mercy Duas
+    - Travel & Safety Duas
+- **Easy Access**: Quick search and filter functionality
+- **Share & Bookmark**: Save favorite duas and share with loved ones
+- **Arabic & Transliteration**: Learn authentic duas with proper pronunciation
+
+### 📖 Offline Quran Reading
+
+- **Complete Offline Mode**: Download and read the entire Quran without internet
+- **Fast Access**: Instant loading of verses from local storage
+- **Persistent Storage**: Quran data remains accessible even after app restarts
+- **Bandwidth Friendly**: No ongoing data usage after initial download
+- **Reliable Reading**: Never lose access to the holy Quran
+
+## �🔧 Available Scripts
 
 ```bash
 npm start        # Start development server
