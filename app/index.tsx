@@ -11,39 +11,42 @@ import * as Notifications from "expo-notifications";
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
   const [dailyVerse, setDailyVerse] = useState<any>(null);
+  const [verseLanguage, setVerseLanguage] = useState('en.asad');
+  const [showVerseLanguagePicker, setShowVerseLanguagePicker] = useState(false);
+  const [verseTranslation, setVerseTranslation] = useState<string>('');
 
-  const scheduleDailyVerseNotification = async () => {
+  const verseLanguageOptions = [
+    { label: 'English', value: 'en.asad' },
+    { label: 'Malayalam', value: 'ml.abdulhameed' },
+    { label: 'Hindi', value: 'hi.farooq' },
+    { label: 'Urdu', value: 'ur.jalandhry' },
+  ];
+
+const scheduleDailyVerseNotification = async (verse: any) => {
   try {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== "granted") return;
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const now = new Date();
-    const nextTrigger = new Date();
-    nextTrigger.setHours(9);
-    nextTrigger.setMinutes(0);
-    nextTrigger.setSeconds(0);
-
-    // If 9 AM already passed today, schedule for tomorrow
-    if (nextTrigger <= now) {
-      nextTrigger.setDate(nextTrigger.getDate() + 1);
-    }
+    const verseText =
+      verse?.text
+        ? verse.text.substring(0, 100) + (verse.text.length > 100 ? "..." : "")
+        : "Daily Quran Verse";
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "📖 Daily Quran Verse",
-        body: dailyVerse ? `"${dailyVerse.text}"` : "Loading...",
+        body: verseText,
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: nextTrigger,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 9,
+        minute: 0,
       },
     });
-
-    // console.log("Daily verse scheduled for", nextTrigger);
   } catch (error) {
-    // console.log("Notification error:", error);
+    console.log("Notification error:", error);
   }
 };
 
@@ -56,7 +59,22 @@ export default function HomeScreen() {
 
         const verse = await getVerseOfTheDay();
         setDailyVerse(verse);
-        await scheduleDailyVerseNotification();
+        await scheduleDailyVerseNotification(verse);
+
+        // Load translation if not English
+        if (verseLanguage !== 'en.asad') {
+          try {
+            const response = await fetch(
+              `https://api.alquran.cloud/v1/ayah/${verse.number}/${verseLanguage}`
+            );
+            const data = await response.json();
+            if (data.data && data.data.text) {
+              setVerseTranslation(data.data.text);
+            }
+          } catch (error) {
+            console.log('Error fetching initial verse translation:', error);
+          }
+        }
       } catch (error) {
         console.log("Loading error:", error);
       }
@@ -64,6 +82,27 @@ export default function HomeScreen() {
 
     loadData();
   }, []);
+
+  const changeVerseLanguage = async (language: string) => {
+    setVerseLanguage(language);
+    setShowVerseLanguagePicker(false);
+
+    if (dailyVerse) {
+      try {
+        // Fetch translation for the specific ayah
+        const response = await fetch(
+          `https://api.alquran.cloud/v1/ayah/${dailyVerse.number}/${language}`
+        );
+        const data = await response.json();
+        if (data.data && data.data.text) {
+          setVerseTranslation(data.data.text);
+        }
+      } catch (error) {
+        console.log('Error fetching verse translation:', error);
+        setVerseTranslation('');
+      }
+    }
+  };
 
   const prayerData = times ? [
     { name: "Fajr", time: times.Fajr, arabicName: "الفجر", icon: "🌅" },
@@ -133,12 +172,50 @@ export default function HomeScreen() {
       </Link>
 
       {/* Inspirational Quote */}
-      <Text style={styles.sectionTitle}>Verse of the Day</Text>
+      <View style={styles.sectionTitleContainer}>
+        <Text style={styles.sectionTitle}>Verse of the Day</Text>
+        <TouchableOpacity
+          onPress={() => setShowVerseLanguagePicker(!showVerseLanguagePicker)}
+          style={styles.verseLanguageSelector}
+        >
+          <Text style={styles.verseLanguageSelectorText}>
+            {verseLanguageOptions.find(lang => lang.value === verseLanguage)?.label} ▼
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {showVerseLanguagePicker && (
+        <View style={styles.verseLanguagePicker}>
+          {verseLanguageOptions.map((lang, index) => (
+            <TouchableOpacity
+              key={lang.value}
+              onPress={() => changeVerseLanguage(lang.value)}
+              style={[
+                styles.verseLanguageOption,
+                verseLanguage === lang.value && styles.verseLanguageOptionSelected,
+                index < verseLanguageOptions.length - 1 && styles.verseLanguageOptionBorder
+              ]}
+            >
+              <Text style={[
+                styles.verseLanguageOptionText,
+                verseLanguage === lang.value && styles.verseLanguageOptionTextSelected
+              ]}>
+                {lang.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       {dailyVerse && (
         <View style={styles.quoteContainer}>
           <Text style={styles.quoteText}>
             "{dailyVerse.text}"
           </Text>
+
+          {verseTranslation && verseLanguage !== 'en.asad' && (
+            <Text style={styles.verseTranslationText}>
+              "{verseTranslation}"
+            </Text>
+          )}
 
           <Text style={{
             marginTop: 10,
@@ -323,6 +400,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 22,
   },
+  verseTranslationText: {
+    fontSize: 14,
+    color: "#1a472a",
+    fontWeight: "500",
+    lineHeight: 22,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#d4af37",
+  },
   shareButtonIcon: {
     fontSize: 18,
     fontWeight: "700",
@@ -350,5 +437,53 @@ const styles = StyleSheet.create({
     borderLeftColor: "#d4af37",
     borderRadius: 12,
     marginBottom: 10,   // add this
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  verseLanguageSelector: {
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#d4af37',
+  },
+  verseLanguageSelectorText: {
+    color: '#d4af37',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  verseLanguagePicker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#d4af37',
+    overflow: 'hidden',
+  },
+  verseLanguageOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  verseLanguageOptionBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  verseLanguageOptionSelected: {
+    backgroundColor: '#d4af37',
+  },
+  verseLanguageOptionText: {
+    fontSize: 14,
+    color: '#1a472a',
+  },
+  verseLanguageOptionTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
