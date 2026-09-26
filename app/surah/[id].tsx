@@ -1,9 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Audio } from "expo-av";
+import { useAudioPlayer } from "expo-audio";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { fetchSurahWithTranslation } from "../../src/api/quran";
 
 
@@ -13,9 +13,33 @@ function toArabicNumber(num: number) {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]);
 }
 
+function removeLeadingBismillah(text: string) {
+  const bismillah = "بسم الله الرحمن الرحيم".replace(/\s/g, "");
+  text = text.replace(/^\uFEFF/, "");
+  let normalized = "";
+  let endIndex = 0;
+
+  for (let index = 0; index < text.length && normalized.length < bismillah.length; index += 1) {
+    const character = text[index];
+    if (/\s/.test(character) || /[\u064B-\u065F\u0670\u0640]/.test(character)) {
+      continue;
+    }
+
+    normalized += character.replace(/[ٱإأآ]/g, "ا");
+    endIndex = index + 1;
+  }
+
+  if (normalized !== bismillah) {
+    return text;
+  }
+
+  return text.slice(endIndex).replace(/^[\s\u064B-\u065F\u0670\u0640]+/, "").trim();
+}
+
 export default function SurahDetail() {
   const { id } = useLocalSearchParams();
   const [ayahs, setAyahs] = useState<any[]>([]);
+  const [totalAyahs, setTotalAyahs] = useState(0);
   const [surahName, setSurahName] = useState("");
   const BISMILLAH =
     "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
@@ -25,11 +49,9 @@ export default function SurahDetail() {
 
   const [currentAyah, setCurrentAyah] = useState(1);
   const flatListRef = useRef<FlatList>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const audioPlayer = useAudioPlayer(null);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
 
-  const [showAll, setShowAll] = useState(false);
   const [expandedAyahs, setExpandedAyahs] = useState<number[]>([]);
   const [translations, setTranslations] = useState<any[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState('en.asad');
@@ -44,37 +66,18 @@ export default function SurahDetail() {
 
   const playAyahAudio = async (globalAyahNumber: number, ayahNumber: number) => {
     try {
-      if (soundRef.current) {
-        const status = await soundRef.current.getStatusAsync();
-        if (status.isLoaded && status.isPlaying) {
-          // If this same ayah is playing, pause it
-          if (playingAyah === ayahNumber) {
-            await soundRef.current.pauseAsync();
-            setPlayingAyah(null);
-            return;
-          }
-          // stop and play new one
-          await soundRef.current.unloadAsync();
-          soundRef.current = null;
-        }
+      if (audioPlayer.playing && playingAyah === ayahNumber) {
+        audioPlayer.pause();
+        setPlayingAyah(null);
+        return;
       }
 
       const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`;
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true }
-      );
-
-      soundRef.current = sound;
+      audioPlayer.replace(audioUrl);
+      audioPlayer.play();
       setPlayingAyah(ayahNumber);
-
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if ((status as any).didJustFinish) {
-          setPlayingAyah(null);
-        }
-      });
-    } catch (error) {
+    } catch {
     }
   };
   useEffect(() => {
@@ -84,23 +87,24 @@ export default function SurahDetail() {
       const { arabic, english } = await fetchSurahWithTranslation(Number(id), selectedLanguage);
 
       let ayahList = arabic.ayahs.map((a: any) => ({ ...a }));
-
-      const BISMILLAH_TEXT =
-        "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ";
+      let translationList = english;
 
       if (arabic.number !== 9) {
-        if (
-          ayahList.length > 0 &&
-          ayahList[0].text.includes(BISMILLAH_TEXT)
-        ) {
-          ayahList[0].text = ayahList[0].text
-            .replace(BISMILLAH_TEXT, "")
-            .trim();
+        if (ayahList.length > 0) {
+          const firstAyahText = removeLeadingBismillah(ayahList[0].text);
+          if (firstAyahText) {
+            ayahList[0].text = firstAyahText;
+          } else {
+            ayahList = ayahList.slice(1);
+            translationList = english.slice(1);
+          }
         }
       }
 
       setAyahs(ayahList);
-      setTranslations(english);
+      setTranslations(translationList);
+      setTotalAyahs(arabic.numberOfAyahs);
+      setCurrentAyah(ayahList[0]?.numberInSurah ?? 1);
 
       setSurahName(
         `Surah ${arabic.number} – ${arabic.englishName} (${arabic.name})`
@@ -131,17 +135,19 @@ export default function SurahDetail() {
     };
 
     loadSurah();
-  }, [id]);
+  }, [id, selectedLanguage]);
 
   useEffect(() => {
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
+    const subscription = audioPlayer.addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) {
+        setPlayingAyah(null);
       }
-    };
-  }, []);
+    });
 
-  const onViewableItemsChanged = useRef(
+    return () => subscription.remove();
+  }, [audioPlayer]);
+
+  const onViewableItemsChanged = useCallback(
     async ({ viewableItems }: any) => {
       if (viewableItems.length > 0) {
         const visibleItem = viewableItems[0].item;
@@ -154,8 +160,9 @@ export default function SurahDetail() {
           ayahNum.toString()
         );
       }
-    }
-  ).current;
+    },
+    [id]
+  );
 
 
   const toggleTranslation = (ayahNumber: number) => {
@@ -166,13 +173,14 @@ export default function SurahDetail() {
     );
   };
 
-  const changeLanguage = async (language: string) => {
+  const changeLanguage = (language: string) => {
     setSelectedLanguage(language);
     setShowLanguagePicker(false);
-    // Reload translations with new language
-    const { english } = await fetchSurahWithTranslation(Number(id), language);
-    setTranslations(english);
   };
+
+  const progress: `${number}%` = totalAyahs > 0
+    ? `${(currentAyah / totalAyahs) * 100}%`
+    : "0%";
 
   return (
     <View style={styles.container}>
@@ -196,7 +204,7 @@ export default function SurahDetail() {
         <Text style={styles.title}>{surahName}</Text>
         <View style={styles.headerRow}>
           <Text style={styles.progressText}>
-            Ayah {currentAyah} of {ayahs.length}
+            Ayah {currentAyah} of {totalAyahs}
           </Text>
           <TouchableOpacity
             onPress={() => setShowLanguagePicker(!showLanguagePicker)}
@@ -230,16 +238,8 @@ export default function SurahDetail() {
           </View>
         )}
         <View style={styles.progressBarContainer}>
-          <Animated.View
-            style={[
-              styles.progressBar,
-              {
-                width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0%", "100%"],
-                }),
-              },
-            ]}
+          <View
+            style={[styles.progressBar, { width: progress }]}
           />
         </View>
       </LinearGradient>

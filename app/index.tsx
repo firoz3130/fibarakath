@@ -4,9 +4,7 @@ import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getCurrentCity, getPrayerTimes } from "../src/api/prayer";
-import { getVerseOfTheDay } from "../src/api/quran";
-
-import * as Notifications from "expo-notifications";
+import { getVerseForDate, getVerseOfTheDay } from "../src/api/quran";
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
@@ -22,33 +20,44 @@ export default function HomeScreen() {
     { label: 'Urdu', value: 'ur.jalandhry' },
   ];
 
-const scheduleDailyVerseNotification = async (verse: any) => {
-  try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") return;
+  const scheduleDailyVerseNotifications = async () => {
+    try {
+      const Notifications = await import("expo-notifications");
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") return;
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+      // Remove the old repeating notification and any previously scheduled batch.
+      await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const verseText =
-      verse?.text
-        ? verse.text.substring(0, 100) + (verse.text.length > 100 ? "..." : "")
-        : "Daily Quran Verse";
+      const now = new Date();
+      const notifications = Array.from({ length: 14 }, async (_, index) => {
+        const notificationDate = new Date(now);
+        notificationDate.setDate(now.getDate() + index + 1);
+        notificationDate.setHours(9, 0, 0, 0);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "📖 Daily Quran Verse",
-        body: verseText,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 9,
-        minute: 0,
-      },
-    });
-  } catch (error) {
-    console.log("Notification error:", error);
-  }
-};
+        const verse = await getVerseForDate(notificationDate);
+        const verseText = verse?.text
+          ? verse.text.substring(0, 100) + (verse.text.length > 100 ? "..." : "")
+          : "Your daily Quran verse is ready.";
+
+        return Notifications.scheduleNotificationAsync({
+          content: {
+            title: "📖 Daily Quran Verse",
+            body: verseText,
+            data: { type: "daily-quran-verse", ayahNumber: verse?.number },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: notificationDate,
+          },
+        });
+      });
+
+      await Promise.all(notifications);
+    } catch (error) {
+      console.log("Notification error:", error);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,22 +68,7 @@ const scheduleDailyVerseNotification = async (verse: any) => {
 
         const verse = await getVerseOfTheDay();
         setDailyVerse(verse);
-        await scheduleDailyVerseNotification(verse);
-
-        // Load translation if not English
-        if (verseLanguage !== 'en.asad') {
-          try {
-            const response = await fetch(
-              `https://api.alquran.cloud/v1/ayah/${verse.number}/${verseLanguage}`
-            );
-            const data = await response.json();
-            if (data.data && data.data.text) {
-              setVerseTranslation(data.data.text);
-            }
-          } catch (error) {
-            console.log('Error fetching initial verse translation:', error);
-          }
-        }
+        await scheduleDailyVerseNotifications();
       } catch (error) {
         console.log("Loading error:", error);
       }
@@ -121,26 +115,9 @@ const scheduleDailyVerseNotification = async (verse: any) => {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <Text style={styles.mainTitle}>Ramadan Companion</Text>
-        <Text style={styles.subtitle}>🌙 Blessed Month 🌙</Text>
+        <Text style={styles.mainTitle}>Fibarakath</Text>
+        <Text style={styles.subtitle}>Daily Quran & Prayer Companion</Text>
       </LinearGradient>
-
-      {/* Sehri & Iftar Highlight */}
-      {times && (
-        <View style={styles.highlightContainer}>
-          <View style={[styles.highlightCard, styles.sehriCard]}>
-            <Text style={styles.highlightLabel}>SEHRI</Text>
-            <Text style={styles.highlightTime}>{times.Fajr}</Text>
-            <Text style={styles.highlightSubtext}>Wake-up Time</Text>
-          </View>
-
-          <View style={[styles.highlightCard, styles.iftarCard]}>
-            <Text style={styles.highlightLabel}>IFTAR</Text>
-            <Text style={styles.highlightTime}>{times.Maghrib}</Text>
-            <Text style={styles.highlightSubtext}>Breaking Fast</Text>
-          </View>
-        </View>
-      )}
 
       {/* Prayer Times Section */}
       <Text style={styles.sectionTitle}>Prayer Times</Text>
@@ -168,6 +145,28 @@ const scheduleDailyVerseNotification = async (verse: any) => {
           >
             <Text style={styles.ctaButtonText}>✨ Read the Quran</Text>
           </LinearGradient>
+        </TouchableOpacity>
+      </Link>
+
+      <Link href={"/tasbih" as never} asChild>
+        <TouchableOpacity style={styles.tasbihButton} activeOpacity={0.8}>
+          <Text style={styles.tasbihButtonIcon}>۞</Text>
+          <View>
+            <Text style={styles.tasbihButtonTitle}>Tasbih Counter</Text>
+            <Text style={styles.tasbihButtonText}>Keep your dhikr close</Text>
+          </View>
+          <Text style={styles.tasbihButtonArrow}>→</Text>
+        </TouchableOpacity>
+      </Link>
+
+      <Link href={"/duas" as never} asChild>
+        <TouchableOpacity style={styles.tasbihButton} activeOpacity={0.8}>
+          <Text style={styles.tasbihButtonIcon}>🤲</Text>
+          <View>
+            <Text style={styles.tasbihButtonTitle}>Duas for daily life</Text>
+            <Text style={styles.tasbihButtonText}>Travel, meals, home, sleep and more</Text>
+          </View>
+          <Text style={styles.tasbihButtonArrow}>→</Text>
         </TouchableOpacity>
       </Link>
 
@@ -273,53 +272,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1,
   },
-  highlightContainer: {
-    flexDirection: "row",
-    gap: 15,
-    paddingHorizontal: 20,
-    marginTop: -20,
-    marginBottom: 40,
-  },
-  highlightCard: {
-    flex: 1,
-    borderRadius: 20,
-    padding: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  sehriCard: {
-    backgroundColor: "#fff3e0",
-    borderLeftWidth: 6,
-    borderLeftColor: "#ff9800",
-  },
-  iftarCard: {
-    backgroundColor: "#e8f5e9",
-    borderLeftWidth: 6,
-    borderLeftColor: "#4caf50",
-  },
-  highlightLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#666",
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  highlightTime: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  highlightSubtext: {
-    fontSize: 12,
-    color: "#999",
-    fontWeight: "500",
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -392,6 +344,43 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#1a472a",
     letterSpacing: 0.5,
+  },
+  tasbihButton: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#d4af37",
+    shadowColor: "#1a472a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tasbihButtonIcon: {
+    fontSize: 30,
+    color: "#d4af37",
+    marginRight: 14,
+  },
+  tasbihButtonTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1a472a",
+  },
+  tasbihButtonText: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#777",
+  },
+  tasbihButtonArrow: {
+    marginLeft: "auto",
+    fontSize: 22,
+    color: "#d4af37",
+    fontWeight: "700",
   },
   quoteText: {
     fontSize: 14,

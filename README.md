@@ -1,13 +1,12 @@
-# 🌙 Fibarakath - Your Ramadan Companion App
+# 🌙 Fibarakath - Your Islamic Companion App
 
-**Fibarakath** is a comprehensive Islamic mobile application designed to be your trusted companion during the blessed month of Ramadan. With seamless access to prayer times, Quran verses, and spiritual guidance, this app helps you make the most of this sacred period.
+**Fibarakath** is an Islamic mobile application with prayer times, Quran reading, and daily spiritual guidance for year-round use.
 
 ## ✨ Features
 
 ### 🕌 Prayer Times
 
 - **Real-time Prayer Schedules**: Get accurate Fajr, Dhuhr, Asr, Maghrib, and Isha prayer times
-- **Sehri & Iftar Alerts**: See exact times for pre-dawn meal (Sehri) and breaking the fast (Iftar)
 - **Multi-City Support**: View prayer times for different cities across India
 - **Beautiful UI**: Elegant gradient design with clear time displays
 
@@ -18,9 +17,9 @@
 - **Verse of the Day**: Receive a unique daily Islamic verse with caching for offline access
 - **Easy Navigation**: Intuitive interface to jump between chapters
 
-### 🎯 Ramadan Companion
+### 🎯 Daily Companion
 
-- **Spiritual Guidance**: Daily verses to inspire and guide your spiritual journey
+- **Spiritual Guidance**: A different daily verse in the app and in the 9 AM notification schedule
 - **Prayer Tracking**: Keep track of all five daily prayers
 - **Share Functionality**: Share verses and prayer times with family and friends
 - **Responsive Design**: Works flawlessly on Android, iOS, and Web
@@ -132,7 +131,6 @@ fibarakath/
 ### 🕐 Prayer Times Module
 
 - Fetch and display prayer times based on user's city
-- Highlight Sehri and Iftar times prominently
 - Support for multiple Indian cities
 - Real-time updates
 
@@ -172,6 +170,8 @@ fibarakath/
 - **Easy Access**: Quick search and filter functionality
 - **Share & Bookmark**: Save favorite duas and share with loved ones
 - **Arabic & Transliteration**: Learn authentic duas with proper pronunciation
+
+Planned categories include duas for prayer, travel, eating, waking and sleeping, entering or leaving home, illness, and forgiveness.
 
 ### 📖 Offline Quran Reading
 

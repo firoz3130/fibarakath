@@ -21,19 +21,28 @@ export const getVerseOfTheDay = async () => {
 		return JSON.parse(savedVerse);
 	}
 
-	// Quran has 6236 ayahs
-	const randomAyahNumber =
-		Math.floor((new Date().getTime() / (1000 * 60 * 60 * 24)) % 6236) + 1;
+	const data = await getVerseForDate(new Date());
 
+	await AsyncStorage.setItem("verse_date", today);
+	await AsyncStorage.setItem("verse_data", JSON.stringify(data));
+
+	return data;
+};
+
+export const getVerseForDate = async (date: Date) => {
+	// Quran has 6236 ayahs. A date-based index keeps each scheduled day stable.
+	const calendarDay = Date.UTC(
+		date.getFullYear(),
+		date.getMonth(),
+		date.getDate(),
+	);
+	const ayahNumber =
+		(Math.floor(calendarDay / (1000 * 60 * 60 * 24)) % 6236) + 1;
 	const response = await fetch(
-		`https://api.alquran.cloud/v1/ayah/${randomAyahNumber}/en.asad`,
+		`https://api.alquran.cloud/v1/ayah/${ayahNumber}/en.asad`,
 	);
 
 	const data = await response.json();
-
-	await AsyncStorage.setItem("verse_date", today);
-	await AsyncStorage.setItem("verse_data", JSON.stringify(data.data));
-
 	return data.data;
 };
 
