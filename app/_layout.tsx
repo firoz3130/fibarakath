@@ -14,6 +14,7 @@ export default function Layout() {
       <Stack.Screen name="quran" options={{ title: "Quran" }} />
       <Stack.Screen name="tasbih" options={{ title: "Tasbih" }} />
       <Stack.Screen name="duas" options={{ title: "Daily Duas" }} />
+      <Stack.Screen name="calendar" options={{ title: "Hijri Calendar" }} />
       <Stack.Screen name="surah/[id]" options={{ title: "Surah" }} />
     </Stack>
   );

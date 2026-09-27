@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getCurrentCity, getPrayerTimes } from "../src/api/prayer";
 import { getVerseForDate, getVerseOfTheDay } from "../src/api/quran";
+import PrayerTracker from "../src/components/PrayerTracker";
+import { formatGregorianDate, getHijriDate, getIslamicEventsOnDate } from "../src/utils/islamicCalendar";
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
@@ -12,6 +14,9 @@ export default function HomeScreen() {
   const [verseLanguage, setVerseLanguage] = useState('en.asad');
   const [showVerseLanguagePicker, setShowVerseLanguagePicker] = useState(false);
   const [verseTranslation, setVerseTranslation] = useState<string>('');
+  const [today, setToday] = useState(() => new Date());
+  const hijriDate = getHijriDate(today);
+  const todaysEvents = getIslamicEventsOnDate(today);
 
   const verseLanguageOptions = [
     { label: 'English', value: 'en.asad' },
@@ -77,6 +82,11 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => setToday(new Date()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const changeVerseLanguage = async (language: string) => {
     setVerseLanguage(language);
     setShowVerseLanguagePicker(false);
@@ -118,6 +128,24 @@ export default function HomeScreen() {
         <Text style={styles.mainTitle}>Fibarakath</Text>
         <Text style={styles.subtitle}>Daily Quran & Prayer Companion</Text>
       </LinearGradient>
+
+      <Link href={"/calendar" as never} asChild>
+        <TouchableOpacity style={styles.todayCard} activeOpacity={0.75} accessibilityRole="button">
+          <View style={styles.todayContent}>
+            <Text style={styles.todayLabel}>TODAY IN ISLAM</Text>
+            <Text style={styles.todayHijri}>
+              {hijriDate ? `${hijriDate.day} ${hijriDate.monthName} ${hijriDate.year} AH` : "Hijri date unavailable"}
+            </Text>
+            <Text style={styles.todayGregorian}>{formatGregorianDate(today)}</Text>
+            {todaysEvents[0] && (
+              <Text style={styles.todayEvent}>{todaysEvents[0].icon} {todaysEvents[0].title}</Text>
+            )}
+          </View>
+          <Text style={styles.todayArrow}>›</Text>
+        </TouchableOpacity>
+      </Link>
+
+      <PrayerTracker />
 
       {/* Prayer Times Section */}
       <Text style={styles.sectionTitle}>Prayer Times</Text>
@@ -272,6 +300,27 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1,
   },
+  todayCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e7e4dc",
+    borderLeftWidth: 3,
+    borderLeftColor: "#d4af37",
+  },
+  todayContent: { flex: 1 },
+  todayLabel: { color: "#927328", fontSize: 10, fontWeight: "800", letterSpacing: 1.2 },
+  todayHijri: { marginTop: 4, color: "#1a472a", fontSize: 16, fontWeight: "800" },
+  todayGregorian: { marginTop: 2, color: "#77796f", fontSize: 12 },
+  todayEvent: { marginTop: 6, color: "#805f13", fontSize: 12, fontWeight: "700" },
+  todayArrow: { marginLeft: 8, color: "#927328", fontSize: 25, fontWeight: "700" },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
