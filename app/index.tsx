@@ -1,15 +1,21 @@
 /* eslint-disable react/no-unescaped-entities */
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { getCurrentCity, getPrayerTimes } from "../src/api/prayer";
 import { getVerseForDate, getVerseOfTheDay } from "../src/api/quran";
 import PrayerTracker from "../src/components/PrayerTracker";
+import { cancelPrayerNudges, schedulePrayerNudges } from "../src/notifications/prayerNudges";
 import { formatGregorianDate, getHijriDate, getIslamicEventsOnDate } from "../src/utils/islamicCalendar";
+
+const PRAYER_NUDGES_SETTING = "prayer_nudges_enabled";
 
 export default function HomeScreen() {
   const [times, setTimes] = useState<any>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [prayerNudgesEnabled, setPrayerNudgesEnabled] = useState(true);
   const [dailyVerse, setDailyVerse] = useState<any>(null);
   const [verseLanguage, setVerseLanguage] = useState('en.asad');
   const [showVerseLanguagePicker, setShowVerseLanguagePicker] = useState(false);
@@ -31,8 +37,12 @@ export default function HomeScreen() {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== "granted") return;
 
-      // Remove the old repeating notification and any previously scheduled batch.
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      await Promise.all(
+        scheduled
+          .filter((notification) => notification.content.data?.type === "daily-quran-verse")
+          .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier)),
+      );
 
       const now = new Date();
       const notifications = Array.from({ length: 14 }, async (_, index) => {
@@ -68,12 +78,18 @@ export default function HomeScreen() {
     const loadData = async () => {
       try {
         const city = await getCurrentCity();
+        setCity(city);
         const prayerTimes = await getPrayerTimes(city);
         setTimes(prayerTimes);
+
+        const nudgesSetting = await AsyncStorage.getItem(PRAYER_NUDGES_SETTING);
+        const nudgesEnabled = nudgesSetting !== "false";
+        setPrayerNudgesEnabled(nudgesEnabled);
 
         const verse = await getVerseOfTheDay();
         setDailyVerse(verse);
         await scheduleDailyVerseNotifications();
+        if (nudgesEnabled) await schedulePrayerNudges(city);
       } catch (error) {
         console.log("Loading error:", error);
       }
@@ -81,6 +97,29 @@ export default function HomeScreen() {
 
     loadData();
   }, []);
+
+  const togglePrayerNudges = async (enabled: boolean) => {
+    setPrayerNudgesEnabled(enabled);
+    await AsyncStorage.setItem(PRAYER_NUDGES_SETTING, String(enabled));
+
+    if (!enabled) {
+      await cancelPrayerNudges();
+      return;
+    }
+
+    try {
+      const Notifications = await import("expo-notifications");
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        setPrayerNudgesEnabled(false);
+        await AsyncStorage.setItem(PRAYER_NUDGES_SETTING, "false");
+        return;
+      }
+      if (city) await schedulePrayerNudges(city);
+    } catch (error) {
+      console.log("Prayer reminder error:", error);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => setToday(new Date()), 60_000);
@@ -132,7 +171,7 @@ export default function HomeScreen() {
       <Link href={"/calendar" as never} asChild>
         <TouchableOpacity style={styles.todayCard} activeOpacity={0.75} accessibilityRole="button">
           <View style={styles.todayContent}>
-            <Text style={styles.todayLabel}>TODAY IN ISLAM</Text>
+            <Text style={styles.todayLabel}>TODAY IN ISLAM - التقويم الهجري</Text>
             <Text style={styles.todayHijri}>
               {hijriDate ? `${hijriDate.day} ${hijriDate.monthName} ${hijriDate.year} AH` : "Hijri date unavailable"}
             </Text>
@@ -161,6 +200,19 @@ export default function HomeScreen() {
           ))}
         </View>
       )}
+      <View style={styles.prayerReminderRow}>
+        <View style={styles.prayerReminderCopy}>
+          <Text style={styles.prayerReminderTitle}>Gentle prayer reminders</Text>
+          <Text style={styles.prayerReminderDescription}>A quiet nudge after each prayer</Text>
+        </View>
+        <Switch
+          value={prayerNudgesEnabled}
+          onValueChange={togglePrayerNudges}
+          trackColor={{ false: "#c9c8bd", true: "#8eaf91" }}
+          thumbColor={prayerNudgesEnabled ? "#1a472a" : "#f4f3ef"}
+          accessibilityLabel="Gentle prayer reminders"
+        />
+      </View>
 
       {/* CTA Button */}
       <Link href="/quran" asChild>
@@ -336,6 +388,23 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 30,
   },
+  prayerReminderRow: {
+    minHeight: 68,
+    marginHorizontal: 20,
+    marginTop: -18,
+    marginBottom: 30,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e7e4dc",
+  },
+  prayerReminderCopy: { flex: 1, paddingRight: 12 },
+  prayerReminderTitle: { color: "#1a472a", fontSize: 14, fontWeight: "700" },
+  prayerReminderDescription: { marginTop: 3, color: "#77796f", fontSize: 12 },
   prayerCard: {
     width: "48%",
     backgroundColor: "#fff",

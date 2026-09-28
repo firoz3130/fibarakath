@@ -43,7 +43,7 @@ export default function CalendarScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient colors={["#1a472a", "#2d5a3d"]} style={styles.header}>
-                <Text style={styles.eyebrow}>TODAY IN ISLAM</Text>
+                <Text style={styles.eyebrow}>TODAY IN ISLAM - التقويم الهجري</Text>
                 {getHijriDate(today) ? (
                     <Text style={styles.hijriDate}>
                         {getHijriDate(today)!.day} {getHijriDate(today)!.monthName} {getHijriDate(today)!.year} AH

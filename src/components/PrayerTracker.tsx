@@ -15,11 +15,12 @@ import {
 import { addLocalDays, getLocalDateKey } from "../utils/localDate";
 
 const prayerLabels: Record<PrayerId, string> = {
-    fajr: "Fajr",
-    dhuhr: "Dhuhr",
-    asr: "Asr",
-    maghrib: "Maghrib",
-    isha: "Isha",
+    fajr: "Fajr - الفجر 🌅",
+    dhuhr: "Dhuhr - الظهر ☀️",
+    asr: "Asr - العصر 🌤️",
+    maghrib: "Maghrib - المغرب 🌇",
+    isha: "Isha - العشاء 🌙",
+
 };
 
 const weekdays = Array.from({ length: 7 }, (_, index) =>

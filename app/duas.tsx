@@ -79,6 +79,22 @@ const duas = [
     },
 ];
 
+const evilEyeReminder = {
+    title: "For those who are afraid of evil eye and other people",
+    hadith:
+        '“And if they were to gather to do something to harm you, you would never be harmed except what Allah had written for you.”',
+    source: "Jami` at-Tirmidhi 2516",
+    items: [
+        "Ayat al-Kursi",
+        "Surah Al-Falaq",
+        "Surah An-Nas",
+        "Surah Al-Ikhlas",
+        'Dua 1: "A’udhu bi kalimatillahil-tam-mati, min kulli shaytanin wa hammatin, wa min kulli aynin lammah."',
+        'Dua 2: "Bismillahil-ladhi la yadurru ma’asmihi shay’un fil-ardi wa la fis-sama’i, wa Huwas-Sami’ul-Alim"',
+        "Dhikr & Salawat",
+    ],
+};
+
 export default function DuasScreen() {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const visibleDuas = selectedCategory === "All"
@@ -126,6 +142,24 @@ export default function DuasScreen() {
             </ScrollView>
 
             <ScrollView contentContainerStyle={styles.duaList}>
+                <View style={styles.reminderCard}>
+                    <Text style={styles.reminderTitle}>{evilEyeReminder.title}</Text>
+                    <Text style={styles.hadithIntro}>The Prophet ﷺ said:</Text>
+                    <Text style={styles.hadithText}>{evilEyeReminder.hadith}</Text>
+                    <Text style={styles.hadithSource}>({evilEyeReminder.source})</Text>
+                    <Text style={styles.trustText}>
+                        Put your trust in Allah and recite your daily prayers:
+                    </Text>
+                    <View style={styles.reminderList}>
+                        {evilEyeReminder.items.map((item, index) => (
+                            <View key={index} style={styles.reminderItem}>
+                                <Text style={styles.bullet}>•</Text>
+                                <Text style={styles.reminderItemText}>{item}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
                 {visibleDuas.map((dua) => (
                     <View key={`${dua.category}-${dua.title}`} style={styles.duaEntry}>
                         <View style={styles.entryHeading}>
@@ -136,11 +170,12 @@ export default function DuasScreen() {
                         <Text style={styles.transliteration}>{dua.transliteration}</Text>
                         <Text style={styles.meaning}>{dua.meaning}</Text>
                         <TouchableOpacity onPress={() => openSource(dua.url)} style={styles.sourceButton}>
-                            <Text style={styles.sourceText}>{dua.source}  ↗</Text>
+                            <Text style={styles.sourceText}>{dua.source} ↗</Text>
                         </TouchableOpacity>
                     </View>
                 ))}
             </ScrollView>
+
         </View>
     );
 }
@@ -165,4 +200,72 @@ const styles = StyleSheet.create({
     meaning: { marginTop: 8, color: "#333", fontSize: 14, lineHeight: 21 },
     sourceButton: { alignSelf: "flex-start", marginTop: 12, paddingVertical: 6 },
     sourceText: { color: "#805f13", fontSize: 12, fontWeight: "700" },
+    reminderCard: {
+        marginBottom: 16,
+        padding: 18,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e7e4dc",
+        borderRadius: 10,
+    },
+
+    reminderTitle: {
+        color: "#222",
+        fontSize: 16,
+        fontWeight: "700",
+        lineHeight: 24,
+        marginBottom: 24,
+    },
+
+    hadithIntro: {
+        color: "#222",
+        fontSize: 15,
+        lineHeight: 22,
+        marginBottom: 10,
+    },
+
+    hadithText: {
+        color: "#222",
+        fontSize: 15,
+        lineHeight: 24,
+    },
+
+    hadithSource: {
+        color: "#555",
+        fontSize: 13,
+        marginTop: 6,
+        marginBottom: 28,
+    },
+
+    trustText: {
+        color: "#222",
+        fontSize: 15,
+        lineHeight: 23,
+        marginBottom: 10,
+    },
+
+    reminderList: {
+        marginTop: 2,
+    },
+
+    reminderItem: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        marginBottom: 7,
+        paddingRight: 4,
+    },
+
+    bullet: {
+        color: "#222",
+        fontSize: 17,
+        lineHeight: 22,
+        width: 18,
+    },
+
+    reminderItemText: {
+        flex: 1,
+        color: "#222",
+        fontSize: 14,
+        lineHeight: 22,
+    },
 });
