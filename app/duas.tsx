@@ -1,8 +1,9 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const categories = ["All", "Travel", "Eating", "Home", "Sleep & waking", "Distress"];
+const evilEyeCategory = "Evil eye protection";
+const categories = ["All", "Travel", "Eating", "Home", "Sleep & waking", "Distress", evilEyeCategory];
 
 const duas = [
     {
@@ -80,7 +81,7 @@ const duas = [
 ];
 
 const evilEyeReminder = {
-    title: "For those who are afraid of evil eye and other people",
+    title: "Evil Eye Protection",
     hadith:
         '“And if they were to gather to do something to harm you, you would never be harmed except what Allah had written for you.”',
     source: "Jami` at-Tirmidhi 2516",
@@ -97,6 +98,7 @@ const evilEyeReminder = {
 
 export default function DuasScreen() {
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const categoryScrollRef = useRef<ScrollView>(null);
     const visibleDuas = selectedCategory === "All"
         ? duas
         : duas.filter((dua) => dua.category === selectedCategory);
@@ -122,14 +124,21 @@ export default function DuasScreen() {
             </LinearGradient>
 
             <ScrollView
+                ref={categoryScrollRef}
                 horizontal
+                style={styles.categoryScroll}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoryList}
             >
                 {categories.map((category) => (
                     <TouchableOpacity
                         key={category}
-                        onPress={() => setSelectedCategory(category)}
+                        onPress={() => {
+                            setSelectedCategory(category);
+                            if (category === "All") {
+                                categoryScrollRef.current?.scrollTo({ x: 0, animated: true });
+                            }
+                        }}
                         style={[styles.categoryButton, selectedCategory === category && styles.categoryButtonActive]}
                         accessibilityRole="tab"
                         accessibilityState={{ selected: selectedCategory === category }}
@@ -142,23 +151,25 @@ export default function DuasScreen() {
             </ScrollView>
 
             <ScrollView contentContainerStyle={styles.duaList}>
-                <View style={styles.reminderCard}>
-                    <Text style={styles.reminderTitle}>{evilEyeReminder.title}</Text>
-                    <Text style={styles.hadithIntro}>The Prophet ﷺ said:</Text>
-                    <Text style={styles.hadithText}>{evilEyeReminder.hadith}</Text>
-                    <Text style={styles.hadithSource}>({evilEyeReminder.source})</Text>
-                    <Text style={styles.trustText}>
-                        Put your trust in Allah and recite your daily prayers:
-                    </Text>
-                    <View style={styles.reminderList}>
-                        {evilEyeReminder.items.map((item, index) => (
-                            <View key={index} style={styles.reminderItem}>
-                                <Text style={styles.bullet}>•</Text>
-                                <Text style={styles.reminderItemText}>{item}</Text>
-                            </View>
-                        ))}
+                {(selectedCategory === "All" || selectedCategory === evilEyeCategory) && (
+                    <View style={styles.reminderCard}>
+                        <Text style={styles.reminderTitle}>{evilEyeReminder.title}</Text>
+                        <Text style={styles.hadithIntro}>The Prophet ﷺ said:</Text>
+                        <Text style={styles.hadithText}>{evilEyeReminder.hadith}</Text>
+                        <Text style={styles.hadithSource}>({evilEyeReminder.source})</Text>
+                        <Text style={styles.trustText}>
+                            Put your trust in Allah and recite your daily prayers:
+                        </Text>
+                        <View style={styles.reminderList}>
+                            {evilEyeReminder.items.map((item, index) => (
+                                <View key={index} style={styles.reminderItem}>
+                                    <Text style={styles.bullet}>•</Text>
+                                    <Text style={styles.reminderItemText}>{item}</Text>
+                                </View>
+                            ))}
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {visibleDuas.map((dua) => (
                     <View key={`${dua.category}-${dua.title}`} style={styles.duaEntry}>
@@ -185,8 +196,9 @@ const styles = StyleSheet.create({
     header: { paddingTop: 42, paddingBottom: 24, paddingHorizontal: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
     title: { color: "#fff", fontSize: 30, fontWeight: "800" },
     subtitle: { marginTop: 5, color: "#e4cf8e", fontSize: 14, fontWeight: "600" },
-    categoryList: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
-    categoryButton: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: "#e9e7df" },
+    categoryScroll: { height: 56, flexGrow: 0, flexShrink: 0 },
+    categoryList: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
+    categoryButton: { height: 36, justifyContent: "center", paddingHorizontal: 14, borderRadius: 8, backgroundColor: "#e9e7df" },
     categoryButtonActive: { backgroundColor: "#1a472a" },
     categoryText: { color: "#555", fontSize: 13, fontWeight: "700" },
     categoryTextActive: { color: "#fff" },
