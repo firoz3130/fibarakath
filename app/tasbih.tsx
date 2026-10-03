@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const STORAGE_KEY = "tasbih_state_v2";
 const LEGACY_COUNT_KEY = "tasbih_count";
@@ -253,7 +253,13 @@ const styles = StyleSheet.create({
     targetText: { color: "#777", fontSize: 14 },
     progressTrack: { width: "100%", height: 8, marginTop: 14, backgroundColor: "#e4e0d5", borderRadius: 4, overflow: "hidden" },
     progress: { height: "100%", backgroundColor: "#d4af37", borderRadius: 4 },
-    counterButton: { width: "100%", minHeight: 160, marginTop: 22, borderRadius: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, backgroundColor: "#1a472a", shadowColor: "#1a472a", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 8 },
+    counterButton: {
+        width: "100%", minHeight: 160, marginTop: 22, borderRadius: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, backgroundColor: "#1a472a",
+        ...Platform.select({
+            web: { boxShadow: "0px 8px 12px rgba(26, 71, 42, 0.25)" },
+            default: { shadowColor: "#1a472a", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 8 },
+        }),
+    },
     counterButtonComplete: { backgroundColor: "#2d5a3d" },
     counterButtonArabic: { color: "#fff", fontSize: 28, fontWeight: "700", textAlign: "center" },
     counterButtonText: { marginTop: 12, color: "#d4af37", fontSize: 14, fontWeight: "700", textAlign: "center" },

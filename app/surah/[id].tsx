@@ -1,13 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAudioPlayer } from "expo-audio";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { fetchSurahWithTranslation } from "../../src/api/quran";
 
-
-
+const AYAH_VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
 
 function toArabicNumber(num: number) {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]);
@@ -48,9 +48,17 @@ export default function SurahDetail() {
 
 
   const [currentAyah, setCurrentAyah] = useState(1);
+  const surahIdRef = useRef(id);
   const flatListRef = useRef<FlatList>(null);
   const audioPlayer = useAudioPlayer(null);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isFullSurahMode, setIsFullSurahMode] = useState(false);
+  const ayahsRef = useRef<any[]>([]);
+  const fullSurahModeRef = useRef(false);
+  const fullSurahIndexRef = useRef(0);
+  const isUserScrollingRef = useRef(false);
+  const scrollResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [expandedAyahs, setExpandedAyahs] = useState<number[]>([]);
   const [translations, setTranslations] = useState<any[]>([]);
@@ -68,23 +76,93 @@ export default function SurahDetail() {
     try {
       if (audioPlayer.playing && playingAyah === ayahNumber) {
         audioPlayer.pause();
+        fullSurahModeRef.current = false;
+        setIsFullSurahMode(false);
+        setIsAudioPlaying(false);
         setPlayingAyah(null);
         return;
       }
 
+      fullSurahModeRef.current = false;
+      setIsFullSurahMode(false);
       const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`;
 
       audioPlayer.replace(audioUrl);
       audioPlayer.play();
+      setIsAudioPlaying(true);
       setPlayingAyah(ayahNumber);
     } catch {
     }
   };
+
+  const scrollToAyah = useCallback((index: number) => {
+    if (isUserScrollingRef.current) return;
+    flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 });
+  }, []);
+
+  const toggleFullSurahPlayback = () => {
+    if (!ayahsRef.current.length) return;
+
+    if (fullSurahModeRef.current) {
+      if (isAudioPlaying) {
+        audioPlayer.pause();
+        setIsAudioPlaying(false);
+      } else {
+        audioPlayer.play();
+        setIsAudioPlaying(true);
+      }
+      return;
+    }
+
+    const startIndex = Math.max(
+      0,
+      ayahsRef.current.findIndex((ayah) => ayah.numberInSurah === currentAyah),
+    );
+    const ayah = ayahsRef.current[startIndex];
+    fullSurahIndexRef.current = startIndex;
+    fullSurahModeRef.current = true;
+    setIsFullSurahMode(true);
+    setPlayingAyah(ayah.numberInSurah);
+    setIsAudioPlaying(true);
+    scrollToAyah(startIndex);
+    audioPlayer.replace(
+      `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${ayah.number}.mp3`,
+    );
+    audioPlayer.play();
+  };
+
+  useEffect(() => {
+    const tag = `surah-recitation-${id}`;
+    let cancelled = false;
+    let activated = false;
+
+    if (isFullSurahMode && isAudioPlaying) {
+      void activateKeepAwakeAsync(tag)
+        .then(() => {
+          if (cancelled) {
+            void deactivateKeepAwake(tag).catch(() => { });
+          } else {
+            activated = true;
+          }
+        })
+        .catch(() => { });
+    }
+
+    return () => {
+      cancelled = true;
+      if (activated) void deactivateKeepAwake(tag).catch(() => { });
+    };
+  }, [id, isAudioPlaying, isFullSurahMode]);
+
   useEffect(() => {
     if (!id) return;
 
+    let cancelled = false;
+    let bookmarkTimer: ReturnType<typeof setTimeout> | null = null;
+
     const loadSurah = async () => {
       const { arabic, english } = await fetchSurahWithTranslation(Number(id), selectedLanguage);
+      if (cancelled) return;
 
       let ayahList = arabic.ayahs.map((a: any) => ({ ...a }));
       let translationList = english;
@@ -101,6 +179,7 @@ export default function SurahDetail() {
         }
       }
 
+      ayahsRef.current = ayahList;
       setAyahs(ayahList);
       setTranslations(translationList);
       setTotalAyahs(arabic.numberOfAyahs);
@@ -114,11 +193,13 @@ export default function SurahDetail() {
       const saved = await AsyncStorage.getItem(
         `last_read_surah_${id}`
       );
+      if (cancelled) return;
 
       if (saved) {
         const savedAyah = Number(saved);
 
-        setTimeout(() => {
+        bookmarkTimer = setTimeout(() => {
+          if (cancelled) return;
           const index = ayahList.findIndex(
             (a: any) => a.numberInSurah === savedAyah
           );
@@ -134,18 +215,61 @@ export default function SurahDetail() {
       }
     };
 
-    loadSurah();
+    void loadSurah().catch((error) => {
+      if (!cancelled) console.log("Surah loading error:", error);
+    });
+
+    return () => {
+      cancelled = true;
+      if (bookmarkTimer) clearTimeout(bookmarkTimer);
+    };
   }, [id, selectedLanguage]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    let disposed = false;
     const subscription = audioPlayer.addListener("playbackStatusUpdate", (status) => {
-      if (status.didJustFinish) {
-        setPlayingAyah(null);
+      if (!disposed && status.didJustFinish) {
+        if (fullSurahModeRef.current) {
+          const nextIndex = fullSurahIndexRef.current + 1;
+          const nextAyah = ayahsRef.current[nextIndex];
+          if (!nextAyah) {
+            fullSurahModeRef.current = false;
+            setIsFullSurahMode(false);
+            setIsAudioPlaying(false);
+            setPlayingAyah(null);
+            return;
+          }
+
+          fullSurahIndexRef.current = nextIndex;
+          setPlayingAyah(nextAyah.numberInSurah);
+          setCurrentAyah(nextAyah.numberInSurah);
+          scrollToAyah(nextIndex);
+          audioPlayer.replace(
+            `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${nextAyah.number}.mp3`,
+          );
+          audioPlayer.play();
+        } else {
+          setIsAudioPlaying(false);
+          setPlayingAyah(null);
+        }
       }
     });
 
-    return () => subscription.remove();
-  }, [audioPlayer]);
+    return () => {
+      disposed = true;
+      fullSurahModeRef.current = false;
+      if (scrollResumeTimerRef.current) {
+        clearTimeout(scrollResumeTimerRef.current);
+        scrollResumeTimerRef.current = null;
+      }
+      subscription.remove();
+      try {
+        audioPlayer.pause();
+      } catch {
+        // The native player may already be released during route teardown.
+      }
+    };
+  }, [audioPlayer, scrollToAyah]));
 
   const onViewableItemsChanged = useCallback(
     async ({ viewableItems }: any) => {
@@ -156,13 +280,17 @@ export default function SurahDetail() {
         setCurrentAyah(ayahNum);
 
         await AsyncStorage.setItem(
-          `last_read_surah_${id}`,
+          `last_read_surah_${surahIdRef.current}`,
           ayahNum.toString()
         );
       }
     },
-    [id]
+    []
   );
+
+  useEffect(() => {
+    surahIdRef.current = id;
+  }, [id]);
 
 
   const toggleTranslation = (ayahNumber: number) => {
@@ -202,6 +330,18 @@ export default function SurahDetail() {
           </Text> */}
         </TouchableOpacity>
         <Text style={styles.title}>{surahName}</Text>
+        <TouchableOpacity
+          onPress={toggleFullSurahPlayback}
+          style={styles.fullSurahButton}
+          accessibilityRole="button"
+          accessibilityLabel="Listen to the full surah"
+        >
+          <Text style={styles.fullSurahButtonText}>
+            {isFullSurahMode
+              ? `${isAudioPlaying ? "⏸" : "▶"}  ${isAudioPlaying ? "Pause" : "Resume"} full surah`
+              : "▶  Listen full surah"}
+          </Text>
+        </TouchableOpacity>
         <View style={styles.headerRow}>
           <Text style={styles.progressText}>
             Ayah {currentAyah} of {totalAyahs}
@@ -249,8 +389,28 @@ export default function SurahDetail() {
         data={ayahs}
         keyExtractor={(item) => item.number.toString()}
         onViewableItemsChanged={onViewableItemsChanged}
+        onScrollBeginDrag={() => {
+          isUserScrollingRef.current = true;
+          if (scrollResumeTimerRef.current) clearTimeout(scrollResumeTimerRef.current);
+        }}
+        onScrollEndDrag={() => {
+          if (scrollResumeTimerRef.current) clearTimeout(scrollResumeTimerRef.current);
+          scrollResumeTimerRef.current = setTimeout(() => {
+            isUserScrollingRef.current = false;
+            if (fullSurahModeRef.current) scrollToAyah(fullSurahIndexRef.current);
+          }, 150);
+        }}
+        onMomentumScrollEnd={() => {
+          if (scrollResumeTimerRef.current) clearTimeout(scrollResumeTimerRef.current);
+          isUserScrollingRef.current = false;
+          if (fullSurahModeRef.current) scrollToAyah(fullSurahIndexRef.current);
+        }}
+        onScrollToIndexFailed={({ index, averageItemLength }) => {
+          flatListRef.current?.scrollToOffset({ offset: averageItemLength * index, animated: true });
+          setTimeout(() => scrollToAyah(index), 250);
+        }}
         contentContainerStyle={{ paddingBottom: 120 }}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        viewabilityConfig={AYAH_VIEWABILITY_CONFIG}
         renderItem={({ item, index }) => (
           <View style={{ padding: 20 }}>
             {index === 0 && showBismillah && (
@@ -301,6 +461,19 @@ export default function SurahDetail() {
           </View>
         )}
       />
+      {isFullSurahMode && (
+        <TouchableOpacity
+          onPress={toggleFullSurahPlayback}
+          style={styles.floatingPlaybackButton}
+          accessibilityRole="button"
+          accessibilityLabel={isAudioPlaying ? "Pause full surah" : "Resume full surah"}
+        >
+          <Text style={styles.floatingPlaybackIcon}>{isAudioPlaying ? "⏸" : "▶"}</Text>
+          <Text style={styles.floatingPlaybackText}>
+            {isAudioPlaying ? "Pause recitation" : "Resume recitation"}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -318,6 +491,53 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#fff",
     marginTop: 10,
+  },
+  fullSurahButton: {
+    alignSelf: "flex-start",
+    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: "#d4af37",
+  },
+  fullSurahButtonText: {
+    color: "#1a472a",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  floatingPlaybackButton: {
+    position: "absolute",
+    bottom: 24,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: "#1a472a",
+    borderWidth: 2,
+    borderColor: "#d4af37",
+    ...Platform.select({
+      web: { boxShadow: "0px 3px 6px rgba(0, 0, 0, 0.24)" },
+      default: {
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.24,
+        shadowRadius: 6,
+      },
+    }),
+  },
+  floatingPlaybackIcon: {
+    color: "#d4af37",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  floatingPlaybackText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   page: {
     padding: 20,
@@ -364,11 +584,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#d4af37",
     gap: 6,
-    shadowColor: "#d4af37",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    ...Platform.select({
+      web: { boxShadow: "0px 3px 6px rgba(212, 175, 55, 0.2)" },
+      default: {
+        shadowColor: "#d4af37",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 5,
+      },
+    }),
   },
   playButtonActive: {
     backgroundColor: "#d4af37",
@@ -396,11 +621,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#d4af37",
     gap: 6,
-    shadowColor: "#d4af37",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    ...Platform.select({
+      web: { boxShadow: "0px 3px 6px rgba(212, 175, 55, 0.2)" },
+      default: {
+        shadowColor: "#d4af37",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 5,
+      },
+    }),
   },
   translateButtonActive: {
     backgroundColor: "#d4af37",

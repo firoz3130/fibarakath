@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import { getPrayerTimesForDate } from "../api/prayer";
 
 const PRAYER_NUDGE_TYPE = "prayer-nudge";
-const SCHEDULE_DAYS = 9;
+const SCHEDULE_DAYS = Platform.OS === "ios" ? 8 : 9;
 
 const reminderMessages: Record<
 	string,
@@ -91,6 +91,23 @@ const reminderMessages: Record<
 	},
 };
 
+const trackerReminder = {
+	title: "Check-in 🌙",
+	delayMinutes: 120,
+	bodies: [
+		"Shhh..💛 Before you call it a day 🌙, take a moment to mark your tracker.",
+		"End your day with a little reflection 🤍, don’t forget to update your prayer tracker.",
+		"A moment for your day of worship 🌙, mark the prayers you’ve completed today.",
+		"Keep your prayer journey up to date 🕌, take a moment to mark today’s prayers.",
+		"Before you rest tonight 🌙, check your prayer tracker and mark anything you missed.",
+		"Hey, just checking in 🌙 — did you remember to update today’s prayer tracker?",
+		"Psst… one last thing 🤍 — don’t forget to mark your prayers for today.",
+		"Your day isn’t quite checked off yet ✨ — update your prayer tracker if you haven’t.",
+		"Almost done for today 🌙 — take a moment to complete your prayer tracking.",
+		"A tiny reminder before bed 🤍 — mark your prayers for today.",
+	],
+};
+
 function getPrayerDate(date: Date): Date {
 	return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
 }
@@ -154,8 +171,10 @@ export async function schedulePrayerNudges(city: string): Promise<void> {
 			}),
 		);
 
-		const notifications = prayerDays.flatMap(({ date, times }) =>
-			Object.entries(reminderMessages).flatMap(([prayer, reminder]) => {
+		const notifications = prayerDays.flatMap(({ date, times }) => {
+			const prayerNotifications = Object.entries(
+				reminderMessages,
+			).flatMap(([prayer, reminder]) => {
 				const prayerTime = times[prayer];
 				if (typeof prayerTime !== "string") return [];
 
@@ -168,8 +187,33 @@ export async function schedulePrayerNudges(city: string): Promise<void> {
 					return [];
 
 				return [{ prayer, reminder, notificationDate }];
-			}),
-		);
+			});
+			const ishaTime = times.Isha;
+			if (typeof ishaTime !== "string") return prayerNotifications;
+
+			const trackerNotificationDate = getNotificationDate(
+				date,
+				ishaTime,
+				trackerReminder.delayMinutes,
+			);
+			if (
+				!trackerNotificationDate ||
+				trackerNotificationDate <= new Date() ||
+				trackerNotificationDate.getFullYear() !== date.getFullYear() ||
+				trackerNotificationDate.getMonth() !== date.getMonth() ||
+				trackerNotificationDate.getDate() !== date.getDate()
+			)
+				return prayerNotifications;
+
+			return [
+				...prayerNotifications,
+				{
+					prayer: "tracker-final",
+					reminder: trackerReminder,
+					notificationDate: trackerNotificationDate,
+				},
+			];
+		});
 
 		await cancelPrayerNudges();
 		await Promise.all(

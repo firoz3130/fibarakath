@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { getSurahs } from "../src/api/quran";
 
 export default function QuranScreen() {
@@ -126,11 +126,16 @@ const styles = StyleSheet.create({
     color: "#1a1a1a",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...Platform.select({
+      web: { boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.08)" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+      },
+    }),
   },
   listContent: {
     paddingHorizontal: 20,
@@ -147,11 +152,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#e8e8e8",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+      },
+    }),
   },
   numberBadge: {
     width: 50,
@@ -161,11 +171,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
-    shadowColor: "#1a472a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 8px rgba(26, 71, 42, 0.2)" },
+      default: {
+        shadowColor: "#1a472a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 6,
+      },
+    }),
   },
   numberText: {
     color: "#d4af37",

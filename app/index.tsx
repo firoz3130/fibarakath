@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { getCurrentCity, getPrayerTimes } from "../src/api/prayer";
 import { getVerseForDate, getVerseOfTheDay } from "../src/api/quran";
 import PrayerTracker from "../src/components/PrayerTracker";
@@ -289,13 +289,11 @@ export default function HomeScreen() {
           <Text style={styles.quoteText}>
             "{dailyVerse.text}"
           </Text>
-
-          {verseTranslation && verseLanguage !== 'en.asad' && (
+          {verseTranslation.length > 0 && verseLanguage !== 'en.asad' && (
             <Text style={styles.verseTranslationText}>
               "{verseTranslation}"
             </Text>
           )}
-
           <Text style={{
             marginTop: 10,
             fontWeight: "700",
@@ -303,7 +301,6 @@ export default function HomeScreen() {
           }}>
             — Surah {dailyVerse.surah.englishName} ({dailyVerse.surah.number}:{dailyVerse.numberInSurah})
           </Text>
-
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={async () => {
@@ -413,11 +410,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.08)" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
   },
   prayerIcon: {
     fontSize: 32,
@@ -445,11 +447,16 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#d4af37",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
+    ...Platform.select({
+      web: { boxShadow: "0px 8px 12px rgba(212, 175, 55, 0.25)" },
+      default: {
+        shadowColor: "#d4af37",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 10,
+      },
+    }),
   },
   gradientButton: {
     paddingVertical: 18,
@@ -473,11 +480,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#d4af37",
-    shadowColor: "#1a472a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 8px rgba(26, 71, 42, 0.1)" },
+      default: {
+        shadowColor: "#1a472a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    }),
   },
   tasbihButtonIcon: {
     fontSize: 30,
